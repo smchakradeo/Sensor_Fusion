@@ -82,15 +82,16 @@ class main_Class(object):
         sa = math.sin(angle)
 
         # Calculate the rotation matrix elements.
-        self.ini_ori[0, 0] = 1.0 + (1.0 - ca) * (x ** 2 - 1.0)
-        self.ini_ori[0, 1] = -z * sa + (1.0 - ca) * x * y
-        self.ini_ori[0, 2] = y * sa + (1.0 - ca) * x * z
-        self.ini_ori[1, 0] = z * sa + (1.0 - ca) * x * y
-        self.ini_ori[1, 1] = 1.0 + (1.0 - ca) * (y ** 2 - 1.0)
-        self.ini_ori[1, 2] = -x * sa + (1.0 - ca) * y * z
-        self.ini_ori[2, 0] = -y * sa + (1.0 - ca) * x * z
-        self.ini_ori[2, 1] = x * sa + (1.0 - ca) * y * z
-        self.ini_ori[2, 2] = 1.0 + (1.0 - ca) * (z ** 2 - 1.0)
+        self.ini_ori[0][0] = 1.0 + (1.0 - ca) * (x ** 2 - 1.0)
+        self.ini_ori[0][1] = -z * sa + (1.0 - ca) * x * y
+        self.ini_ori[0][2] = y * sa + (1.0 - ca) * x * z
+        self.ini_ori[1][0] = z * sa + (1.0 - ca) * x * y
+        self.ini_ori[1][1] = 1.0 + (1.0 - ca) * (y ** 2 - 1.0)
+        self.ini_ori[1][2] = -x * sa + (1.0 - ca) * y * z
+        self.ini_ori[2][0] = -y * sa + (1.0 - ca) * x * z
+        self.ini_ori[2][1] = x * sa + (1.0 - ca) * y * z
+        self.ini_ori[2][2] = 1.0 + (1.0 - ca) * (z ** 2 - 1.0)
+        print(self.ini_ori)
 
     def motion_model(self, X_states, U, sensr):
         T = sensr.DT
@@ -137,10 +138,14 @@ class main_Class(object):
                     U_vec = np.subtract(np.array([float(data[3]), float(data[4]), float(data[5])], float).transpose(),
                                         sensr.gravity)
                     # print('Gravity: ', sensr.gravity)
-                    print('U_Vec: ', U_vec)
+                    #print('U_Vec: ', U_vec)
                     # print(sensr.Orientation)
                     self.motion_model(self.x_states, U_vec, sensr)
-                    time.sleep(0.1)
+                    #print('Mag: ', data[9],' ',data[10],' ',data[11])
+                    #tot = ((float(data[9]))**2+(float(data[10]))**2+(float(data[11]))**2)**0.5
+                    total = math.degrees(math.atan2(float(data[10]),float(data[9])))
+                    print(data[9],'|',data[10],'|Total: ', total)
+                    #time.sleep(0.1)
             finally:
                 pass
 
