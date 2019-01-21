@@ -17,10 +17,12 @@ class sensor_fusion(object):
         self.R_U = np.identity(3)
         self.Rotation = np.identity(3)
         self.Orientation = ori
+        self.Orientation_acc = np.identity(3)
+        self.Orientation_1 = np.identity(3)
         self.gravity = np.array([0,0,9.8]).transpose()
 
 
-    def set_angles(self,alpha,phi,theta,time_T):
+    def set_angles(self,alpha,phi,theta,acc,mag,time_T):
         time = time_T - self.time_T
         self.DT = time
         self.time_T = time_T
@@ -49,5 +51,15 @@ class sensor_fusion(object):
         self.Rotation = np.matmul(np.matmul(self.R_W,self.R_V),self.R_U)
         self.Orientation = np.matmul(self.Rotation,self.Orientation)
         #self.Orientation = Orientation
-        self.gravity =  np.matmul(np.linalg.inv(self.Orientation),np.array([0,0,9.87]).transpose())
+        self.gravity =  np.matmul(np.linalg.inv(self.Orientation),np.array([0,0,9.86]).transpose())
+        #-----------------------------------
+        mag = mag / 0.6
+        acc = acc / 9.86
+        self.Orientation_acc[:, 2] = acc
+        self.Orientation_acc[:, 0] = mag
+        new_vec = np.cross(acc, mag)
+        self.Orientation_acc[:, 1] = new_vec
+        self.Orientation_1 = np.linalg.inv(self.Orientation_acc)
+
+
 
