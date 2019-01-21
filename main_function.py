@@ -15,6 +15,7 @@ class main_Class(object):
         self.angle1 = 0.0
         self.angle2 = 0.0
         self.angle3 = 0.0
+        self.calib_result = np.array([0,0,0]).transpose()
         self.ini_ori = np.identity(3)
         self.x_states = np.array([0, 0, 0, 0, 0, 0], float).transpose()
         self.x_states_1 = self.x_states
@@ -99,6 +100,18 @@ class main_Class(object):
         self.ini_ori[2][0] = -y * sa + (1.0 - ca) * x * z
         self.ini_ori[2][1] = x * sa + (1.0 - ca) * y * z
         self.ini_ori[2][2] = 1.0 + (1.0 - ca) * (z ** 2 - 1.0)
+    def calibration(self):
+        # Send data
+        sent = self.sock.sendto(bytes(self.message.encode()), self.server_address)
+        # Receive response
+        data, server = self.sock.recvfrom(4096)
+        data = data.decode("utf-8")
+        data = data.strip('{ }')
+        data = data.split()
+        if ((not (int(data[1]) == 255)) and len(data) == 14):
+            magr = np.array([float(data[9]), float(data[10]), float(data[11])]).transpose()
+            self.calib_result += magr
+            time.sleep(0.1)
 
 
     def motion_model(self, U, sensr):
@@ -145,7 +158,7 @@ class main_Class(object):
                 data = data.strip('{ }')
                 data = data.split()
                 if ((not (int(data[1]) == 255)) and len(data) == 14):
-                    magr = np.array([float(data[9]), float(data[10]), float(data[11])]).transpose()
+                    magr = np.subtract(np.array([float(data[9]), float(data[10]), float(data[11])]).transpose(),self.calib_result)
                     accn = np.array([float(data[3]), float(data[4]), float(data[5])]).transpose()
                     sensr.set_angles(alpha=float(data[6]), phi=float(data[7]), theta=float(data[8]),acc= accn,mag=magr,time_T=time.time())
                     U_vec = np.subtract(np.array([float(data[3]), float(data[4]), float(data[5])], float).transpose(),
@@ -157,4 +170,7 @@ class main_Class(object):
 
 
 obj = main_Class()
+ini_time = time.time()
+while(time.time()-ini_time<=5):
+    obj.calibration()
 obj.main()
