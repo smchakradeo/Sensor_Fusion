@@ -32,9 +32,14 @@ class main_Class(object):
             self.angle1 = float(data[6])
             self.angle2 = float(data[7])
             self.angle3 = float(data[8])
-            vector_orig = np.array([float(data[3]), float(data[4]), float(data[5])]).transpose()
-            vector_fin = np.array([0, 0, 9.8]).transpose()
-            self.initial_orientation(vector_orig, vector_fin)
+            #vector_orig = np.array([float(data[3]), float(data[4]), float(data[5])]).transpose()
+            #vector_fin = np.array([0, 0, 9.8]).transpose()
+            #self.initial_orientation(vector_orig, vector_fin)
+            mag = np.array([(float(data[9])),(float(data[10])),(float(data[11]))]).transpose()
+            grav = np.array([(float(data[3])), (float(data[4])), (float(data[5]))]).transpose()
+            self.ini_ori[:,0] = mag/0.6
+            self.ini_ori[:, 2] = grav/9.86
+            self.ini_ori[:, 1] = np.cross(grav,mag)
             # Update the state vector and control vector here
         else:
             self.first_init()
@@ -92,9 +97,9 @@ class main_Class(object):
         self.ini_ori[2][0] = -y * sa + (1.0 - ca) * x * z
         self.ini_ori[2][1] = x * sa + (1.0 - ca) * y * z
         self.ini_ori[2][2] = 1.0 + (1.0 - ca) * (z ** 2 - 1.0)
-        print(self.ini_ori)
 
-    def motion_model(self, X_states, U, sensr):
+
+    def motion_model(self, U, sensr):
         T = sensr.DT
         A = np.array([[1, 0, 0, T, 0, 0],
                       [0, 1, 0, 0, T, 0],
@@ -117,7 +122,7 @@ class main_Class(object):
                              [0, 0, 0, sensr.Rotation[1][0], sensr.Rotation[1][1], sensr.Rotation[1][2]],
                              [0, 0, 0, sensr.Rotation[2][0], sensr.Rotation[2][1], sensr.Rotation[2][2]]], float)
 
-        U_vec = 0.5 * ((self.U + U))
+        U_vec = 0.5 * (self.U + U)
         self.U = U
         orientation = sensr.Orientation
         orientation1 = sensr.Orientation_1
@@ -146,7 +151,7 @@ class main_Class(object):
                     # print('Gravity: ', sensr.gravity)
                     #print('U_Vec: ', U_vec)
                     # print(sensr.Orientation)
-                    self.motion_model(self.x_states, U_vec, sensr)
+                    self.motion_model(U_vec, sensr)
                     #tot = ((float(data[9]))**2+(float(data[10]))**2+(float(data[11]))**2)**0.5
                     total = math.degrees(math.atan2(float(data[10]),float(data[9])))
                     #print(data[9],'|',data[10],'|Total: ', total)
