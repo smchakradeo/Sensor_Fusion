@@ -37,10 +37,12 @@ class main_Class(object):
             #self.initial_orientation(vector_orig, vector_fin)
             mag = np.array([(float(data[9])),(float(data[10])),(float(data[11]))]).transpose()
             grav = np.array([(float(data[3])), (float(data[4])), (float(data[5]))]).transpose()
-            self.ini_ori[:,0] = mag/0.6
+            self.ini_ori[:,0] = mag/0.45
             self.ini_ori[:, 2] = grav/9.86
             self.ini_ori[:, 1] = np.cross(grav,mag)
+            self.ini_ori = np.linalg.inv(self.ini_ori)
             # Update the state vector and control vector here
+            print('Initial: ', self.ini_ori)
         else:
             self.first_init()
 
@@ -148,13 +150,7 @@ class main_Class(object):
                     sensr.set_angles(alpha=float(data[6]), phi=float(data[7]), theta=float(data[8]),acc= accn,mag=magr,time_T=time.time())
                     U_vec = np.subtract(np.array([float(data[3]), float(data[4]), float(data[5])], float).transpose(),
                                         sensr.gravity)
-                    # print('Gravity: ', sensr.gravity)
-                    #print('U_Vec: ', U_vec)
-                    # print(sensr.Orientation)
                     self.motion_model(U_vec, sensr)
-                    #tot = ((float(data[9]))**2+(float(data[10]))**2+(float(data[11]))**2)**0.5
-                    total = math.degrees(math.atan2(float(data[10]),float(data[9])))
-                    #print(data[9],'|',data[10],'|Total: ', total)
                     time.sleep(0.1)
             finally:
                 pass

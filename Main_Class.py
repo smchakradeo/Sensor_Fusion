@@ -53,7 +53,7 @@ class sensor_fusion(object):
         #self.Orientation = Orientation
         self.gravity =  np.matmul(np.linalg.inv(self.Orientation),np.array([0,0,9.86]).transpose())
         #-----------------------------------
-        mag = mag / 0.6
+        mag = mag / 0.45
         acc = acc / 9.86
         self.Orientation_acc[:, 2] = acc
         self.Orientation_acc[:, 0] = mag
