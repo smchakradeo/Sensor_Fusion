@@ -18,8 +18,8 @@ class main_Class(object):
         self.A = np.identity(6)
         self.B = np.array([[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]],float)
         self.Pk = np.identity(6)
-        self.Q = np.eye(6)
-        self.R = np.eye(3)
+        self.Q = np.diag([1.0,1.0,1.0,1.0,1.0,1.0])
+        self.R = np.diag([0.1,0.1,0,1])
         self.calib_result = np.array([0,0,0],float).transpose()
         self.ini_ori = np.identity(3)
         self.x_states = np.array([0, 0, 0, 0, 0, 0], float).transpose()
@@ -38,13 +38,11 @@ class main_Class(object):
             self.angle1 = float(data[6])
             self.angle2 = float(data[7])
             self.angle3 = float(data[8])
-            #vector_orig = np.array([float(data[3]), float(data[4]), float(data[5])]).transpose()
-            #vector_fin = np.array([0, 0, 9.8]).transpose()
-            #self.initial_orientation(vector_orig, vector_fin)
             mag = np.array([(float(data[9])),(float(data[10])),(float(data[11]))]).transpose()
             grav = np.array([(float(data[3])), (float(data[4])), (float(data[5]))]).transpose()
-            self.ini_ori[:,0] = mag/0.45
-            self.ini_ori[:, 2] = grav/9.86
+            val = ((float(data[9]))**2+(float(data[10]))**2+(float(data[11]))**2)**0.5
+            self.ini_ori[:,0] = mag/val
+            self.ini_ori[:, 2] = grav/9.8
             self.ini_ori[:, 1] = np.cross(grav,mag)
             print('or: ', self.ini_ori)
             self.ini_ori = np.linalg.inv(self.ini_ori)
@@ -118,7 +116,9 @@ class main_Class(object):
         if ((not (int(data[1]) == 255)) and len(data) == 14):
             magr = np.array([float(data[9]), float(data[10]), float(data[11])]).transpose()
             self.calib_result += magr
-            time.sleep(0.1)
+            #time.sleep(0.1)
+
+
     def filesave(self,data_save):
         #data_save = data_save.strip()
         #data_save = str(data_save).strip('[ ]')
@@ -220,14 +220,13 @@ class main_Class(object):
                     zk = np.array([0,0,0]).T
                     final_xyz = self.kalman_filter(zk)
                     self.filesave(str(final_xyz))
-                    #time.sleep(0.1)
             finally:
                 pass
 
 
 obj = main_Class()
 ini_time = time.time()
-while(time.time()-ini_time<=5):
+while(time.time()-ini_time<=1):
     obj.calibration()
 print('Callibration Done')
 obj.main()

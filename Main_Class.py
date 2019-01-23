@@ -51,10 +51,10 @@ class sensor_fusion(object):
         self.Rotation = np.matmul(np.matmul(self.R_W,self.R_V),self.R_U)
         self.Orientation = np.matmul(self.Rotation,self.Orientation)
         #self.Orientation = Orientation
-        self.gravity =  np.matmul(np.linalg.inv(self.Orientation),np.array([0,0,9.86]).transpose())
+        self.gravity =  np.matmul(np.linalg.inv(self.Orientation),np.array([0,0,9.8]).transpose())
         #-----------------------------------
         mag = mag / 0.45
-        acc = acc / 9.86
+        acc = acc / 9.8
         self.Orientation_acc[:, 2] = acc
         self.Orientation_acc[:, 0] = mag
         new_vec = np.cross(acc, mag)
