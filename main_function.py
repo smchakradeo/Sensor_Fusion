@@ -164,7 +164,7 @@ class main_Class(object):
 
 
     
-    def kalman_filter(self,zk):
+    def kalman_filter(self,zk,U_vec,sensr):
         """Performs Kalman Filtering on pandas timeseries data.
         :param: zk (pandas timeseries): input data
         :param: xk (np.array): a priori state estimate vector
@@ -181,10 +181,9 @@ class main_Class(object):
         try:
             output = np.zeros(len(zk))
             H = np.array([[1,0,0,0,0,0],[0,1,0,0,0,0],[0,0,1,0,0,0]])
-        
             # time update (prediction)
-            #self.x_states = motion_model()
-            self.x_states = np.matmul(self.A,self.x_states) + np.matmul(self.B,self.U) #Predict state
+            self.x_states = self.motion_model(U_vec,sensr)
+            #self.x_states = np.matmul(self.A,self.x_states) + np.matmul(self.B,self.U) #Predict state
             zk_pred = np.matmul(H,self.x_states) # Predict measurement
             self.Pk = np.matmul(self.A,np.matmul(self.Pk,self.A.T)) + self.Q # Predict error covariance
             # measurement update (correction)
@@ -216,9 +215,9 @@ class main_Class(object):
                     sensr.set_angles(alpha=float(data[6]), phi=float(data[7]), theta=float(data[8]),acc= accn,mag=magr,time_T=time.time())
                     U_vec = np.subtract(np.array([float(data[3]), float(data[4]), float(data[5])], float).transpose(),
                                         sensr.gravity)
-                    xk = self.motion_model(U_vec, sensr)
+                    #xk = self.motion_model(U_vec, sensr)
                     zk = np.array([0,0,0]).T
-                    final_xyz = self.kalman_filter(zk)
+                    final_xyz = self.kalman_filter(zk,U_vec,sensr)
                     self.filesave(str(final_xyz))
             finally:
                 pass
