@@ -151,8 +151,8 @@ class main_Class(object):
                              [0, 0, 0, sensr.Rotation[0][0], sensr.Rotation[0][1], sensr.Rotation[0][2]],
                              [0, 0, 0, sensr.Rotation[1][0], sensr.Rotation[1][1], sensr.Rotation[1][2]],
                              [0, 0, 0, sensr.Rotation[2][0], sensr.Rotation[2][1], sensr.Rotation[2][2]]], float)
-
-        U_vec = 0.5 * (self.U + U)
+        U_vec = (1-0.2)*self.U+0.2*U
+        #U_vec = 0.5 * (self.U + U)
         self.U = U
         orientation = sensr.Orientation
         orientation1 = sensr.Orientation_1
@@ -199,7 +199,7 @@ class main_Class(object):
             pass
 
     def main(self):
-        sensr = sensor_fusion(self.angle1, self.angle2, self.angle3, self.ini_ori, time.time())
+        sensr = sensor_fusion(self.ini_ori, time.time())
         while 1:
             try:
                 # Send data
@@ -212,7 +212,7 @@ class main_Class(object):
                 if ((not (int(data[1]) == 255)) and len(data) == 14):
                     magr = np.subtract(np.array([float(data[9]), float(data[10]), float(data[11])]).transpose(),self.calib_result)
                     accn = np.array([float(data[3]), float(data[4]), float(data[5])]).transpose()
-                    sensr.set_angles(alpha=float(data[6]), phi=float(data[7]), theta=float(data[8]),acc= accn,mag=magr,time_T=time.time())
+                    sensr.set_angles(alpha=float(data[6]), phi=float(data[7]), theta=float(data[8]),acc= accn,mag=magr,time_T=float(data[0]))
                     U_vec = np.subtract(np.array([float(data[3]), float(data[4]), float(data[5])], float).transpose(),
                                         sensr.gravity)
                     #xk = self.motion_model(U_vec, sensr)

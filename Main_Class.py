@@ -1,15 +1,18 @@
 import math
-#import matplotlib.pyplot as plt
 import numpy as np
+from pyquaternion import Quaternion
 
 class sensor_fusion(object):
-    def __init__(self,alpha,phi,theta,ori,time_T):
+    def __init__(self,ori,time_T):
         self.roll = 0.0
         self.pitch = 0.0
         self.yaw = 0.0
-        self.alpha_dot = alpha
-        self.phi_dot = phi
-        self.theta_dot = theta
+        self.roll_a = 0.0
+        self.pitch_a = 0.0
+        self.yaw_a = 0.0
+        self.alpha_dot = 0
+        self.phi_dot = 0
+        self.theta_dot = 0
         self.time_T = time_T
         self.DT = 0.0
         self.R_W = np.identity(3)
@@ -18,6 +21,9 @@ class sensor_fusion(object):
         self.Rotation = np.identity(3)
         self.Orientation = ori
         self.Orientation_acc = np.identity(3)
+        self.quat = Quaternion(matrix=ori)
+        self.quat_acc = Quaternion(matrix=ori)
+        self.quat_gy = self.quat_acc
         self.Orientation_1 = np.identity(3)
         self.gravity = np.array([0,0,9.8]).transpose()
 
@@ -32,6 +38,11 @@ class sensor_fusion(object):
         self.alpha_dot = alpha
         self.phi_dot = phi
         self.theta_dot = theta
+        #-----------------------------------
+        S = Quaternion(scalar=0.0,vector=[alpha,phi,theta])
+        qdot =(0.5 * (self.quat * S))
+        quat = self.quat + (qdot * self.time_T)
+        self.quat_gy = quat.normalised
         # ----------------------------------
         self.R_U[1][1] = math.cos(self.roll)
         self.R_U[1][2] = -math.sin(self.roll)
@@ -60,6 +71,13 @@ class sensor_fusion(object):
         new_vec = np.cross(acc, mag)
         self.Orientation_acc[:, 1] = new_vec
         self.Orientation_1 = np.linalg.inv(self.Orientation_acc)
+        #------------------------------------
+        self.quat_acc = Quaternion(matrix=self.Orientation_1)
+        print('Quat_1(gyro):  ', self.quat_gy,' |Quat_2(acc): ',self.quat_acc)
+
+
+     #def kalman_results(self,acc,mag):
+     #    self.roll_a =
 
 
 
