@@ -22,8 +22,8 @@ class sensor_fusion(object):
         self.Orientation = ori
         self.Orientation_acc = np.identity(3)
         self.quat = Quaternion(matrix=ori)
-        self.quat_acc = Quaternion(matrix=ori)
-        self.quat_gy = self.quat_acc
+        self.q = Quaternion(matrix=ori)
+        self.quat_gy = self.q
         self.Orientation_1 = np.identity(3)
         self.gravity = np.array([0,0,9.8]).transpose()
 
@@ -81,7 +81,17 @@ class sensor_fusion(object):
         self.Orientation_acc[:,0] = self.Orientation_acc[:,0]/np.linalg.norm(self.Orientation_acc[:,0])
         self.Orientation_acc[:, 1] = self.Orientation_acc[:, 1] / np.linalg.norm(self.Orientation_acc[:, 1])
         self.Orientation_acc[:, 2] = self.Orientation_acc[:, 2] / np.linalg.norm(self.Orientation_acc[:, 2])
-        self.quat_acc = Quaternion(matrix=self.Orientation_acc)
-        print
+        q= Quaternion(matrix=self.Orientation_acc)
+        self.q = q
+        #--------------------------------------
+        
+        
+        self.yaw_a =  (math.atan2(2.0 * (q[1] *q[2] - q[0] * q[3]),
+                                                        -1+2*(q[0] * q[0] + q[1] * q[1])))
+        self.pitch_a = (-math.asin(2.0 * (q[1] * q[3] + q[0] * q[2])))
+        self.roll_a = (math.atan2(2.0 * (-q[0] * q[1] + q[2] * q[3]),
+                                  -1+2*(q[0] * q[0] + q[1] * q[1])))
+                                  
+        print(math.degrees(self.roll_a),math.degrees(self.pitch_a),math.degrees(self.yaw_a))
 
 
