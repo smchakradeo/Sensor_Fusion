@@ -1,7 +1,8 @@
 import math
 import numpy as np
 from pyquaternion import Quaternion
-
+import matplotlib.pyplot as plt
+from mpl_toolkits import mplot3d
 class sensor_fusion(object):
     def __init__(self,ori,time_T):
         self.roll = 0.0
@@ -10,6 +11,9 @@ class sensor_fusion(object):
         self.roll_a = 0.0
         self.pitch_a = 0.0
         self.yaw_a = 0.0
+        self.roll_g = 0.0
+        self.pitch_g = 0.0
+        self.yaw_g = 0.0
         self.alpha_dot = 0
         self.phi_dot = 0
         self.theta_dot = 0
@@ -20,17 +24,16 @@ class sensor_fusion(object):
         self.R_U = np.identity(3)
         self.Rotation = np.identity(3)
         self.Orientation = ori
-        self.Orientation_acc = np.identity(3)
+        self.Orientation_acc = ori
         self.quat = Quaternion(matrix=ori)
         self.q = Quaternion(matrix=ori)
         self.quat_gy = self.q
-        self.Orientation_1 = np.identity(3)
         self.gravity = np.array([0,0,9.8]).transpose()
 
 
     def set_angles(self,alpha,phi,theta,acc,mag,time_T):
         time = time_T - self.time_T
-        self.DT = time
+        self.DT = time/1000
         self.time_T = time_T
         self.roll = self.DT*((alpha+self.alpha_dot)/2)
         self.pitch = self.DT * ((phi + self.phi_dot) / 2)
@@ -38,12 +41,14 @@ class sensor_fusion(object):
         self.alpha_dot = alpha
         self.phi_dot = phi
         self.theta_dot = theta
-
+        
         #-----------------------------------
         S = Quaternion(scalar=0.0,vector=[alpha,phi,theta])
         qdot =(0.5 * (self.quat * S))
-        quat = self.quat + (qdot * self.time_T)
-        self.quat_gy = quat.normalised
+        quat = self.quat + (qdot * self.DT)
+        q_gy = quat.normalised
+        self.quat_gy = q_gy
+        """
         # ----------------------------------
         self.R_U[1][1] = math.cos(self.roll)
         self.R_U[1][2] = -math.sin(self.roll)
@@ -62,19 +67,9 @@ class sensor_fusion(object):
         # ----------------------------------
         self.Rotation = np.matmul(np.matmul(self.R_W,self.R_V),self.R_U)
         self.Orientation = np.matmul(self.Rotation,self.Orientation)
-        #self.Orientation = Orientation
         self.gravity =  np.matmul(np.linalg.inv(self.Orientation),np.array([0,0,9.8]).transpose())
-        #-----------------------------------
-        #mag = mag / 0.45
-        #acc = acc / 9.8
-        #self.Orientation_acc[:, 2] = acc
-        #self.Orientation_acc[:, 0] = mag
-        #new_vec = np.cross(acc, mag)
-        #self.Orientation_acc[:, 1] = new_vec
-        #self.Orientation_1 = np.linalg.inv(self.Orientation_acc)
+        """
         #------------------------------------
-        #self.quat_acc = Quaternion(matrix=self.Orientation_1)
-        #print('Quat_1(gyro):  ', self.quat_gy,' |Quat_2(acc): ',self.quat_acc)
         self.Orientation_acc[:,2] = acc
         self.Orientation_acc[:,1] = np.cross(acc,mag)
         self.Orientation_acc[:,0] = np.cross(self.Orientation_acc[:,1], acc)
@@ -86,12 +81,31 @@ class sensor_fusion(object):
         #--------------------------------------
         
         
-        self.yaw_a =  (math.atan2(2.0 * (q[1] *q[2] - q[0] * q[3]),
+        yaw_a =  (math.atan2(2.0 * (q[1] *q[2] - q[0] * q[3]),
                                                         -1+2*(q[0] * q[0] + q[1] * q[1])))
-        self.pitch_a = (-math.asin(2.0 * (q[1] * q[3] + q[0] * q[2])))
-        self.roll_a = (math.atan2(2.0 * (-q[0] * q[1] + q[2] * q[3]),
+        pitch_a = (-math.asin(2.0 * (q[1] * q[3] + q[0] * q[2])))
+        roll_a = (math.atan2(2.0 * (-q[0] * q[1] + q[2] * q[3]),
                                   -1+2*(q[0] * q[0] + q[1] * q[1])))
-                                  
-        print(math.degrees(self.roll_a),math.degrees(self.pitch_a),math.degrees(self.yaw_a))
-
+		#-----------------------------------------
+        yaw_g =  (math.atan2(2.0 * (q_gy[1] *q_gy[2] - q_gy[0] * q_gy[3]),
+                                                        -1+2*(q_gy[0] * q_gy[0] + q_gy[1] * q_gy[1])))
+        pitch_g = (-math.asin(2.0 * (q_gy[1] * q_gy[3] + q_gy[0] * q_gy[2])))
+        roll_g = (math.atan2(2.0 * (-q_gy[0] * q_gy[1] + q_gy[2] * q_gy[3]),
+                                  -1+2*(q_gy[0] * q_gy[0] + q_gy[1] * q_gy[1])))
+        #-----------------------------------------
+        print(math.degrees(roll_a),math.degrees(pitch_a),math.degrees(yaw_a),math.degrees(roll_g),math.degrees(pitch_g),math.degrees(yaw_g))
+        fig = plt.figure()
+        ax = plt.axes(projection='3d')
+        plt.cla()
+        u = [0,1,0,0]
+        v = [0,0,1,0]
+        w = [0,0,0,1]
+        plt.plot3D(self.q*u*-self.q)
+        plt.hold()
+        plt.plot3D(self.q*v*-self.q)
+        plt.plot3D(self.q*w*-self.q)
+        plt.show()
+        plt.pause(0.001)
+        
+        
 

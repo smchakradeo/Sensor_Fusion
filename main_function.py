@@ -25,6 +25,8 @@ class main_Class(object):
         self.x_states = np.array([0, 0, 0, 0, 0, 0], float).transpose()
         self.x_states_1 = self.x_states
         self.U = np.array([0, 0, 0], float).transpose()
+        self.time_t = 0.0
+        self.calibrate_count = 0
         self.first_init()
 
     def first_init(self):
@@ -47,6 +49,7 @@ class main_Class(object):
             self.ini_ori[:,2] = self.ini_ori[:,2]/np.linalg.norm(self.ini_ori[:,2])
             self.ini_ori[:,1] = self.ini_ori[:,1]/np.linalg.norm(self.ini_ori[:,1])
             self.ini_ori[:,0] = self.ini_ori[:,0]/np.linalg.norm(self.ini_ori[:,0])
+            self.time_t = float(data[2])
             
             # Update the state vector and control vector here
             #print('Initial: ', self.ini_ori)
@@ -66,6 +69,7 @@ class main_Class(object):
         if ((not (int(data[1]) == 255)) and len(data) == 14):
             magr = np.array([float(data[9]), float(data[10]), float(data[11])]).transpose()
             self.calib_result += magr
+            self.calibrate_count = self.calibrate_count+1
             #time.sleep(0.1)
 
 
@@ -149,7 +153,7 @@ class main_Class(object):
             pass
 
     def main(self):
-        sensr = sensor_fusion(self.ini_ori, time.time())
+        sensr = sensor_fusion(self.ini_ori, self.time_t)
         while 1:
             try:
                 # Send data
@@ -160,22 +164,22 @@ class main_Class(object):
                 data = data.strip('{ }')
                 data = data.split()
                 if ((not (int(data[1]) == 255)) and len(data) == 14):
-                    magr = np.subtract(np.array([float(data[9]), float(data[10]), float(data[11])]).transpose(),self.calib_result)
+                    magr = np.subtract(np.array([float(data[9]), float(data[10]), float(data[11])]).transpose(),self.calib_result/self.calibrate_count)
                     accn = np.array([float(data[3]), float(data[4]), float(data[5])]).transpose()
-                    sensr.set_angles(alpha=float(data[6]), phi=float(data[7]), theta=float(data[8]),acc= accn,mag=magr,time_T=float(data[0]))
-                    U_vec = np.subtract(np.array([float(data[3]), float(data[4]), float(data[5])], float).transpose(),
-                                        sensr.gravity)
+                    sensr.set_angles(alpha=float(data[6]), phi=float(data[7]), theta=float(data[8]),acc= accn,mag=magr,time_T=float(data[2]))
+                    #U_vec = np.subtract(np.array([float(data[3]), float(data[4]), float(data[5])], float).transpose(),
+                    #                    sensr.gravity)
                     #xk = self.motion_model(U_vec, sensr)
-                    zk = np.array([0,0,0]).T
-                    final_xyz = self.kalman_filter(zk,U_vec,sensr)
-                    self.filesave(str(final_xyz))
+                    #zk = np.array([0,0,0]).T
+                    #final_xyz = self.kalman_filter(zk,U_vec,sensr)
+                    #self.filesave(str(final_xyz))
             finally:
                 pass
 
 
 obj = main_Class()
 ini_time = time.time()
-while(time.time()-ini_time<=1):
+while(time.time()-ini_time<=5):
     obj.calibration()
 print('Callibration Done')
 obj.main()
