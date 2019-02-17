@@ -38,6 +38,7 @@ class sensor_fusion(object):
         self.alpha_dot = alpha
         self.phi_dot = phi
         self.theta_dot = theta
+
         #-----------------------------------
         S = Quaternion(scalar=0.0,vector=[alpha,phi,theta])
         qdot =(0.5 * (self.quat * S))
@@ -64,20 +65,23 @@ class sensor_fusion(object):
         #self.Orientation = Orientation
         self.gravity =  np.matmul(np.linalg.inv(self.Orientation),np.array([0,0,9.8]).transpose())
         #-----------------------------------
-        mag = mag / 0.45
-        acc = acc / 9.8
-        self.Orientation_acc[:, 2] = acc
-        self.Orientation_acc[:, 0] = mag
-        new_vec = np.cross(acc, mag)
-        self.Orientation_acc[:, 1] = new_vec
-        self.Orientation_1 = np.linalg.inv(self.Orientation_acc)
+        #mag = mag / 0.45
+        #acc = acc / 9.8
+        #self.Orientation_acc[:, 2] = acc
+        #self.Orientation_acc[:, 0] = mag
+        #new_vec = np.cross(acc, mag)
+        #self.Orientation_acc[:, 1] = new_vec
+        #self.Orientation_1 = np.linalg.inv(self.Orientation_acc)
         #------------------------------------
-        self.quat_acc = Quaternion(matrix=self.Orientation_1)
-        print('Quat_1(gyro):  ', self.quat_gy,' |Quat_2(acc): ',self.quat_acc)
-
-
-     #def kalman_results(self,acc,mag):
-     #    self.roll_a =
-
+        #self.quat_acc = Quaternion(matrix=self.Orientation_1)
+        #print('Quat_1(gyro):  ', self.quat_gy,' |Quat_2(acc): ',self.quat_acc)
+        self.Orientation_acc[:,2] = acc
+        self.Orientation_acc[:,1] = np.cross(acc,mag)
+        self.Orientation_acc[:,0] = np.cross(self.Orientation_acc[:,1], acc)
+        self.Orientation_acc[:,0] = self.Orientation_acc[:,0]/np.linalg.norm(self.Orientation_acc[:,0])
+        self.Orientation_acc[:, 1] = self.Orientation_acc[:, 1] / np.linalg.norm(self.Orientation_acc[:, 1])
+        self.Orientation_acc[:, 2] = self.Orientation_acc[:, 2] / np.linalg.norm(self.Orientation_acc[:, 2])
+        self.quat_acc = Quaternion(matrix=self.Orientation_acc)
+        print
 
 
