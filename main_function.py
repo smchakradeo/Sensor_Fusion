@@ -4,6 +4,7 @@ import random
 import json
 import numpy as np
 import time
+from scipy import signal
 from Main_Class import sensor_fusion
 
 
@@ -115,8 +116,18 @@ class main_Class(object):
         #print('states: ', self.x_states)
         #print('states2: ', self.x_states_1)
         return self.x_states
-
-
+    def lpf(self, acc):
+        fs = 200 # sampling frequency
+        fc = 30  # Cut-off frequency of the filter
+        w = fc / (fs / 2) #Normalize the frequency
+        b, a = signal.butter(5, w, 'low')
+        output1 = signal.filtfilt(b, a, acc[0])
+        output2 = signal.filtfilt(b, a, acc[1])
+        output3 = signal.filtfilt(b, a, acc[2])
+        #plt.plot(t, output, label='filtered')
+        #plt.legend()
+        #plt.show()
+        return np.array([output1,output2,output3]).transpose()
     
     def kalman_filter(self,zk,U_vec,sensr):
         """Performs Kalman Filtering on pandas timeseries data.
@@ -163,10 +174,13 @@ class main_Class(object):
                 data = data.decode("utf-8")
                 data = data.strip('{ }')
                 data = data.split()
+                
                 if ((not (int(data[1]) == 255)) and len(data) == 14):
                     magr = np.subtract(np.array([float(data[9]), float(data[10]), float(data[11])]).transpose(),self.calib_result/self.calibrate_count)
-                    accn = np.array([float(data[3]), float(data[4]), float(data[5])]).transpose()
+                    acc = np.array([float(data[3]), float(data[4]), float(data[5])])
+                    accn = self.lpf(acc)
                     sensr.set_angles(alpha=float(data[6]), phi=float(data[7]), theta=float(data[8]),acc= accn,mag=magr,time_T=float(data[2]))
+                    print(float(data[2]), accn[0],accn[1],accn[2])
                     #U_vec = np.subtract(np.array([float(data[3]), float(data[4]), float(data[5])], float).transpose(),
                     #                    sensr.gravity)
                     #xk = self.motion_model(U_vec, sensr)
@@ -179,7 +193,7 @@ class main_Class(object):
 
 obj = main_Class()
 ini_time = time.time()
-while(time.time()-ini_time<=5):
+while(time.time()-ini_time<=6):
     obj.calibration()
 print('Callibration Done')
 obj.main()

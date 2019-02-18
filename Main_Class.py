@@ -3,6 +3,7 @@ import numpy as np
 from pyquaternion import Quaternion
 import matplotlib.pyplot as plt
 from mpl_toolkits import mplot3d
+from matplotlib.animation import FuncAnimation
 class sensor_fusion(object):
     def __init__(self,ori,time_T):
         self.roll = 0.0
@@ -28,6 +29,10 @@ class sensor_fusion(object):
         self.quat = Quaternion(matrix=ori)
         self.q = Quaternion(matrix=ori)
         self.quat_gy = self.q
+        self.u = np.array([1,0,0])
+        self.v = np.array([0,1,0])
+        self.w = np.array([0,0,1])
+        self.q_final = self.q
         self.gravity = np.array([0,0,9.8]).transpose()
 
 
@@ -35,12 +40,12 @@ class sensor_fusion(object):
         time = time_T - self.time_T
         self.DT = time/1000
         self.time_T = time_T
-        self.roll = self.DT*((alpha+self.alpha_dot)/2)
+        """self.roll = self.DT*((alpha+self.alpha_dot)/2)
         self.pitch = self.DT * ((phi + self.phi_dot) / 2)
         self.yaw = self.DT * ((theta + self.theta_dot) / 2)
         self.alpha_dot = alpha
         self.phi_dot = phi
-        self.theta_dot = theta
+        self.theta_dot = theta"""
         
         #-----------------------------------
         S = Quaternion(scalar=0.0,vector=[alpha,phi,theta])
@@ -92,20 +97,21 @@ class sensor_fusion(object):
         pitch_g = (-math.asin(2.0 * (q_gy[1] * q_gy[3] + q_gy[0] * q_gy[2])))
         roll_g = (math.atan2(2.0 * (-q_gy[0] * q_gy[1] + q_gy[2] * q_gy[3]),
                                   -1+2*(q_gy[0] * q_gy[0] + q_gy[1] * q_gy[1])))
+        #print(math.degrees(roll_a),math.degrees(pitch_a),math.degrees(yaw_a),math.degrees(roll_g),math.degrees(pitch_g),math.degrees(yaw_g))
         #-----------------------------------------
-        print(math.degrees(roll_a),math.degrees(pitch_a),math.degrees(yaw_a),math.degrees(roll_g),math.degrees(pitch_g),math.degrees(yaw_g))
-        fig = plt.figure()
-        ax = plt.axes(projection='3d')
-        plt.cla()
-        u = [0,1,0,0]
-        v = [0,0,1,0]
-        w = [0,0,0,1]
-        plt.plot3D(self.q*u*-self.q)
-        plt.hold()
-        plt.plot3D(self.q*v*-self.q)
-        plt.plot3D(self.q*w*-self.q)
-        plt.show()
+        q_final = 0.8*self.q+(1-0.8)*self.quat_gy
+        self.q_final = q_final
+        #-----------------------------------------
+        
+        yaw =  (math.atan2(2.0 * (q_final[1] *q_final[2] - q_final[0] * q_final[3]),
+                                                        -1+2*(q_final[0] * q_final[0] + q_final[1] * q_final[1])))
+        pitch = (-math.asin(2.0 * (q_final[1] * q_final[3] + q_final[0] * q_final[2])))
+        roll = (math.atan2(2.0 * (-q_final[0] * q_final[1] + q_final[2] * q_final[3]),
+                                  -1+2*(q_final[0] * q_final[0] + q_final[1] * q_final[1])))
+        #print(math.degrees(roll),math.degrees(pitch),math.degrees(yaw))
         plt.pause(0.001)
+        
+        
         
         
 
