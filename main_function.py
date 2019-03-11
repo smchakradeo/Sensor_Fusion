@@ -31,7 +31,7 @@ class main_Class(object):
         self.calibrate_count = 0
         self.quat_gy = Quaternion(array=[0,0,0,0])
         self.acc_bias = np.array([[0.21,0.06,0.1]]).T
-        self.gyro_bias = np.array([[1.5,1.5,1.5]]).T
+        self.gyro_bias = np.array([[math.radians(-1.5),math.radians(-1.5),math.radians(-5.0)]]).T
         self.z = np.zeros([1,7],float)
         self.first_init()
 
@@ -97,13 +97,17 @@ class main_Class(object):
 
     def motion_model(self, U):
         T = self.DT
+        print("Time: ", T)
         dOmega = np.array([
             [0, -U[2], U[1]],
             [U[2], 0, -U[0]],
             [-U[1], U[0], 0]
         ])
+        #print(dOmega)
+        temp = (2*np.identity(3) - dOmega*T)
+        inv_var = np.linalg.inv(temp)
         
-        self.orientation = (self.orientation.dot((2*np.identity(3) + dOmega*T).dot(np.linalg.inv((2 * np.identity(3, float) - dOmega*T)))))
+        self.orientation = (self.orientation.dot((2*np.identity(3) + dOmega*T).dot(inv_var)))
         self.x_states[0:3] = self.x_states[0:3]  + (T * (self.x_states[3:6]) + (0.5*T**2)*(self.orientation.dot(U[3:6])) - np.array([0.0,0.0,9.8]))
         self.x_states[3:6] = self.x_states[3:6] + (T*(self.orientation.dot(U[3:6])) - np.array([0.0,0.0,9.8]))
         #print('x_states: ',self.x_states_predicted)
@@ -120,7 +124,7 @@ class main_Class(object):
         S = np.array([[0,-accn[2],accn[1]],
                       [accn[2],0,-accn[0]],
                       [-accn[1],accn[0],0]])      #The acceleration is bias corrected and transformed to the navigation frame accn = Rot_b_to_n * accn_body
-		
+
         phi1_1 = np.concatenate((np.identity(3),self.DT*self.orientation),axis=1)
         phi1 = np.concatenate((phi1_1,np.zeros([3,9],float)),axis=1)
         
@@ -139,9 +143,9 @@ class main_Class(object):
         phi5 = np.concatenate((np.zeros([3,12],float),np.identity(3)),axis=1)
         
         
-        self.phi = np.concatenate((phi1,phi2,phi3,phi4,phi5),axis=0)
-        self.error_states = self.Phi.dot(self.error_states)
+        self.Phi = np.concatenate((phi1,phi2,phi3,phi4,phi5),axis=0)
         
+        self.error_states = self.Phi.dot(self.error_states)
         return self.error_states
 
     def error_observation_model(self):
@@ -176,13 +180,13 @@ class main_Class(object):
         :return: output (np.array): kalman filtered data
         """
         try:
-           
+            print(flag)
             if (not flag):          #Not stationary
                 #Prediction
                 self.motion_model(U_vec)
                 prediction = self.error_observation_model()
                 self.Pk = np.matmul(self.Phi,np.matmul(self.Pk,self.Phi.T)) + self.Qk
-                self.error_states = np.zeros([1,15],float)
+                self.error_states = np.zeros([15,1],float)
             else:                   #Stationary
                 # Prediction
                 self.error_states = self.error_motion_model(U_vec)
@@ -209,11 +213,11 @@ class main_Class(object):
                 self.orientation = np.matmul(
                     np.matmul((2 * np.identity(3) + dTheta), np.linalg.inv(2*np.identity(3) - dTheta)),
                     self.orientation)
-            #print("States: ", self.x_states)
         except np.linalg.linalg.LinAlgError:
             pass
 
-    def main(self):
+    def main(self,T):
+        self.time_t = T*1000
         sensr = sensor_fusion(self.ini_ori, self.time_t)
         #self.quat = sensr.quat
         while 1:
@@ -225,21 +229,22 @@ class main_Class(object):
                 data = data.decode("utf-8")
                 data = data.strip('{ }')
                 data = data.split()
-                
                 if ((not (int(data[1]) == 255)) and len(data) == 14):
+					
                     self.time_update(float(data[2]))
                     magr = (np.array([float(data[9]), float(data[10]), float(data[11])]).reshape(-1,1)-(self.calib_result/self.calibrate_count).reshape(-1,1))
-                    accn = (np.array([float(data[3]), float(data[4]), float(data[5])]).reshape(-1,1)-self.acc_bias-np.array([self.error_states[12][0],self.error_states[13,0],self.error_states[14,0]]).reshape(-1,1))
-                    gyro = (np.array([float(data[6]), float(data[7]), float(data[8])]).reshape(-1,1)-self.gyro_bias-np.array([self.error_states[3],self.error_states[4,0],self.error_states[5,0]]).reshape(-1,1))
+                    accn = (np.array([float(data[3]), float(data[4]), float(data[5])]).reshape(-1,1)-self.acc_bias-np.array([self.error_states[12][0],self.error_states[13][0],self.error_states[14][0]]).reshape(-1,1))
+                    gyro = (np.array([math.radians(float(data[6])), math.radians(float(data[7])), math.radians(float(data[8]))]).reshape(-1,1)-self.gyro_bias-np.array([self.error_states[3][0],self.error_states[4][0],self.error_states[5][0]]).reshape(-1,1))
                     U_vec = np.concatenate((gyro.T,accn.T),axis=1).flatten()
                     sensr.set_angles(accn,magr,self.DT)
                     yaw = self.get_heading()
-                    print(np.array([float(data[6]), float(data[7]), float(data[8])]))
+                    print("States: ", self.orientation)
                     if(abs(11-abs(np.linalg.norm(accn)))<=2):
                         self.motion_model(U_vec)
                         self.z[0,2] = sensr.yaw_a - yaw
                         self.z[0,3:6] = gyro.flatten()
                         self.kalman_filter(U_vec=U_vec,zk=self.z,location=None,flag=True)
+                        
                     else:
                         self.kalman_filter(U_vec=U_vec,zk=None,location=None,flag=False)
   
@@ -249,7 +254,8 @@ class main_Class(object):
 
 obj = main_Class()
 ini_time = time.time()
-while(time.time()-ini_time<=1):
+while(time.time()-ini_time<=6):
+	
     obj.calibration()
 print('Callibration Done')
-obj.main()
+obj.main(time.time())
